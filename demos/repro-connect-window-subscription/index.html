@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PowerSync web: a stream subscription change lost inside the connect window</title>
+    <style>
+      body {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 2rem;
+        max-width: 70rem;
+      }
+      pre {
+        background: #f4f4f5;
+        padding: 0.75rem;
+        overflow-x: auto;
+      }
+      .bad {
+        color: #b91c1c;
+        font-weight: bold;
+      }
+      .good {
+        color: #15803d;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PowerSync web: a stream subscription change lost inside the connect window</h1>
+    <p>
+      <code>stream_a</code> and <code>stream_b</code> are both subscribed before <code>connect()</code>. Then
+      <code>stream_b</code> is unsubscribed inside the connect window, while the sync implementation does not exist
+      yet. Afterwards the tab's set and the shared worker's set should still agree — only
+      <code>stream_a</code>.
+    </p>
+    <div id="verdict"></div>
+    <pre id="log"></pre>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

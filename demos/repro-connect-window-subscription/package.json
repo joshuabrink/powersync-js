@@ -1,0 +1,22 @@
+{
+  "name": "repro-connect-window-subscription",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Repro: a stream subscription change made while connect() is in progress never reaches the PowerSync Service (@powersync/web, shared worker).",
+  "scripts": {
+    "setup": "playwright install chromium",
+    "dev": "vite",
+    "repro": "node run.mjs",
+    "fix": "node fix/apply.mjs apply",
+    "unfix": "node fix/apply.mjs revert"
+  },
+  "dependencies": {
+    "@journeyapps/wa-sqlite": "2.0.1",
+    "@powersync/web": "2.1.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1",
+    "vite": "^6.0.0"
+  }
+}
