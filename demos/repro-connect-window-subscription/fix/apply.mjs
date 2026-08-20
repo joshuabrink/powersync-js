@@ -54,20 +54,16 @@ const FROM_SNAPSHOT = `                this.pendingConnectionOptions = null;`;
 const TO_SNAPSHOT = `                this.pendingConnectionOptions = null;
                 const subscriptionsAtStart = this.subscriptionIdentity;`;
 
-// Do not drop the change on the `?.`. The syncStreamInitPromise check also covers the rest of the
-// connect: an implementation that exists but is not ready yet can still drop the update one layer
-// down. Either way connectInternal() sends the current set once it is ready.
-const FROM_GUARD = `    subscriptionsMayHaveChanged() {
+// The identity that the comparison is made against. subscriptionsMayHaveChanged() itself is left
+// alone: whether it drops the update on the `?.` or sends it to an implementation that is not ready
+// to receive it yet, connectInternal() sends the current set once it is.
+const FROM_GETTER = `    subscriptionsMayHaveChanged() {
         this.syncStreamImplementation?.updateSubscriptions(this.activeStreams);
     }`;
-const TO_GUARD = `    get subscriptionIdentity() {
+const TO_GETTER = `    get subscriptionIdentity() {
         return [...this.locallyActiveSubscriptions.keys()].join('\\n');
     }
     subscriptionsMayHaveChanged() {
-        // FIX: nothing to send to yet, or an implementation that is still coming up.
-        if (this.syncStreamInitPromise) {
-            return;
-        }
         this.syncStreamImplementation?.updateSubscriptions(this.activeStreams);
     }`;
 
@@ -98,7 +94,7 @@ export async function apply() {
   let source = await readFile(BACKUP, 'utf8');
   for (const [from, to] of [
     [FROM_SNAPSHOT, TO_SNAPSHOT],
-    [FROM_GUARD, TO_GUARD],
+    [FROM_GETTER, TO_GETTER],
     [FROM_UPDATE, TO_UPDATE]
   ]) {
     if (!source.includes(from)) throw new Error(`patch target not found:\n${from}`);

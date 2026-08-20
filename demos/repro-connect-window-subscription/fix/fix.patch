@@ -1,29 +1,26 @@
 The same edit, against the SDK sources (packages/shared-internals).
 
---- a/packages/shared-internals/src/client/ConnectionManager.ts
-+++ b/packages/shared-internals/src/client/ConnectionManager.ts
-@@ -234,6 +234,9 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
+@@ -234,6 +234,7 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
  
          this.pendingConnectionOptions = null;
  
-+        // Anything subscribing or unsubscribing between this read and the implementation being ready
-+        // has nothing to send an update to, so compare against this and send the current set below.
 +        const subscriptionsAtStart = this.subscriptionIdentity;
          const { sync, onDispose } = await this.options.createSyncImplementation(connector, {
            subscriptions: this.activeStreams,
            serializedSchema: schema
-@@ -242,6 +245,10 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
+@@ -242,6 +243,11 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
          this.syncStreamImplementation = sync;
          this.syncDisposer = onDispose;
          await this.syncStreamImplementation.waitForReady();
 +
++        // Subscriptions changed while creating the sync stream implementation, update it now.
 +        if (this.subscriptionIdentity !== subscriptionsAtStart) {
 +          this.syncStreamImplementation.updateSubscriptions(this.activeStreams);
 +        }
          resolve();
        } catch (error) {
          reject(error);
-@@ -364,7 +371,19 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
+@@ -364,6 +370,13 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
      return [...this.locallyActiveSubscriptions.values()].map((a) => ({ name: a.name, params: a.parameters }));
    }
  
@@ -35,11 +32,5 @@ The same edit, against the SDK sources (packages/shared-internals).
 +  }
 +
    private subscriptionsMayHaveChanged() {
-+    if (this.syncStreamInitPromise) {
-+      // The implementation is not ready and would drop the update. connectInternal() notices the
-+      // change and sends the current set once it is.
-+      return;
-+    }
      this.syncStreamImplementation?.updateSubscriptions(this.activeStreams);
    }
- }

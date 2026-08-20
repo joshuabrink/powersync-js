@@ -24,9 +24,6 @@ class MockStreamingSyncImplementation
   isConnected = false;
   isReady = false;
   readonly receivedUpdates: SubscribedStream[][] = [];
-  // A real implementation may drop these - SharedWebStreamingSyncImplementation does, while its
-  // Comlink port is unresolved.
-  readonly updatesBeforeReady: SubscribedStream[][] = [];
 
   constructor(
     readonly snapshot: SubscribedStream[],
@@ -64,10 +61,12 @@ class MockStreamingSyncImplementation
   async waitUntilStatusMatches(_predicate: (status: SyncStatus) => boolean) {}
 
   updateSubscriptions(subscriptions: SubscribedStream[]) {
-    this.receivedUpdates.push(subscriptions);
     if (!this.isReady) {
-      this.updatesBeforeReady.push(subscriptions);
+      // Modelled on SharedWebStreamingSyncImplementation, which discards updates while its Comlink
+      // port is unresolved.
+      return;
     }
+    this.receivedUpdates.push(subscriptions);
   }
 
   markConnectionMayHaveChanged() {}
@@ -174,12 +173,12 @@ describe('ConnectionManager', () => {
       await harness.manager.stream(adapter, 'stream_a', null).subscribe();
       const b = await harness.manager.stream(adapter, 'stream_b', null).subscribe();
 
-      // Later in the window: the implementation exists, but is still coming up.
+      // Later in the window: the implementation exists, but is still coming up, so the update it
+      // receives is discarded and has to be re-sent once it is ready.
       harness.duringReady(() => b.unsubscribe());
       await harness.manager.connect(connector, {}, {});
 
       expect(names(harness.sync.snapshot)).toEqual(['stream_a', 'stream_b']);
-      expect(harness.sync.updatesBeforeReady).toEqual([]);
       expect(names(harness.sync.effectiveSubscriptions)).toEqual(['stream_a']);
 
       await harness.manager.disconnect();

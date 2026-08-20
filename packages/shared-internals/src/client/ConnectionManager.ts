@@ -234,8 +234,6 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
 
         this.pendingConnectionOptions = null;
 
-        // Anything subscribing or unsubscribing between this read and the implementation being ready
-        // has nothing to send an update to, so compare against this and send the current set below.
         const subscriptionsAtStart = this.subscriptionIdentity;
         const { sync, onDispose } = await this.options.createSyncImplementation(connector, {
           subscriptions: this.activeStreams,
@@ -246,6 +244,7 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
         this.syncDisposer = onDispose;
         await this.syncStreamImplementation.waitForReady();
 
+        // Subscriptions changed while creating the sync stream implementation, update it now.
         if (this.subscriptionIdentity !== subscriptionsAtStart) {
           this.syncStreamImplementation.updateSubscriptions(this.activeStreams);
         }
@@ -379,11 +378,6 @@ export class ConnectionManager extends BaseObserver<ConnectionManagerListener> {
   }
 
   private subscriptionsMayHaveChanged() {
-    if (this.syncStreamInitPromise) {
-      // The implementation is not ready and would drop the update. connectInternal() notices the
-      // change and sends the current set once it is.
-      return;
-    }
     this.syncStreamImplementation?.updateSubscriptions(this.activeStreams);
   }
 }
